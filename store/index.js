@@ -1,4 +1,4 @@
-const siteURL = "https://css-tricks.com"
+import { postsEndpoint, tagsEndpoint } from "../plugins/endpoints"
 
 export const state = () => ({
   posts: [],
@@ -19,21 +19,24 @@ export const actions = {
     if (state.posts.length) return
 
     try {
-      let posts = await fetch(
-        `${siteURL}/wp-json/wp/v2/posts?page=1&per_page=20&_embed=1`
-      ).then(res => res.json())
+      let posts = []
+      let page = 1
 
-      posts = posts
-        .filter(el => el.status === "publish")
-        .map(({ id, slug, title, excerpt, date, tags, content }) => ({
-          id,
-          slug,
-          title,
-          excerpt,
-          date,
-          tags,
-          content
-        }))
+      const totalPages = await fetch(postsEndpoint(page))
+        .then(res => res.headers.get('x-wp-totalpages'))
+
+      while(page <= totalPages) {
+        const response = await fetch(postsEndpoint(page)).then(res => res.json())
+
+        const published = response
+          .filter(el => el.status === "publish")
+          .map(({ id, slug, title, excerpt, date, tags, content }) => ({
+            id, slug, title, excerpt, date, tags, content
+          }))
+
+        posts = [...posts, ...published]
+        page++
+      }
 
       commit("updatePosts", posts)
     } catch (err) {
@@ -43,20 +46,16 @@ export const actions = {
   async getTags({ state, commit }) {
     if (state.tags.length) return
 
-    let allTags = state.posts.reduce((acc, item) => {
+    const allTags = state.posts.reduce((acc, item) => {
       return acc.concat(item.tags)
     }, [])
-    allTags = allTags.join()
+    const uniqueTags = Array.from(new Set(allTags)).join()
 
     try {
-      let tags = await fetch(
-        `${siteURL}/wp-json/wp/v2/tags?page=1&per_page=40&include=${allTags}`
-      ).then(res => res.json())
+      let tags = await fetch(tagsEndpoint(uniqueTags))
+        .then(res => res.json())
 
-      tags = tags.map(({ id, name }) => ({
-        id,
-        name
-      }))
+      tags = tags.map(({ id, name }) => ({ id, name }))
 
       commit("updateTags", tags)
     } catch (err) {

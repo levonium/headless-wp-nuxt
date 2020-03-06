@@ -1,13 +1,5 @@
-import axios from "axios"
-let dynamicRoutes = () => {
-  const routes = axios
-    .get("https://css-tricks.com/wp-json/wp/v2/posts?page=1&per_page=20")
-    .then(res => {
-      return res.data.map(post => `/blog/${post.slug}`)
-    })
-  console.log(routes)
-  return routes
-}
+import { siteUrl } from "./plugins/endpoints"
+import { dynamicRoutes } from "./plugins/routes.server"
 
 export default {
   mode: "universal",
@@ -15,7 +7,7 @@ export default {
    ** Headers of the page
    */
   head: {
-    title: process.env.npm_package_name || "",
+    title: process.env.npm_package_name || "Headless WP Nuxt",
     meta: [
       { charset: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -65,5 +57,8 @@ export default {
      ** You can extend webpack config here
      */
     extend(config, ctx) {}
+  },
+  env: {
+    siteUrl: siteUrl
   }
 }
